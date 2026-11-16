@@ -255,6 +255,32 @@ function finalizarPedido(evento) {
     const numero = Math.floor(1000 + Math.random() * 9000);
     document.getElementById("numeroPedido").textContent = "#" + numero;
 
+    /* grava o pedido antes de esvaziar a sacola */
+    const totais = carrinhoTotais();
+    const pagamento = document.querySelector('input[name="pagamento"]:checked').value;
+    const pedido = {
+        numero: numero,
+        data: new Date().toISOString(),
+        itens: carrinhoObter(),
+        subtotal: totais.subtotal,
+        desconto: totais.desconto,
+        cupom: totais.cupom,
+        total: totalComPix(),
+        pagamento: pagamento,
+        entrega: {
+            nome: document.getElementById("nomeCompleto").value.trim(),
+            email: document.getElementById("emailCheckout").value.trim(),
+            telefone: document.getElementById("telefoneCheckout").value.trim(),
+            cep: document.getElementById("cepCheckout").value.trim(),
+            cidade: document.getElementById("cidadeCheckout").value.trim(),
+            endereco: document.getElementById("enderecoCheckout").value.trim()
+        }
+    };
+
+    const pedidos = JSON.parse(localStorage.getItem("solur_pedidos") || "[]");
+    pedidos.push(pedido);
+    localStorage.setItem("solur_pedidos", JSON.stringify(pedidos));
+
     carrinhoLimpar();
     mostrarEtapa(3);
     solurToast("Pedido #" + numero + " confirmado. Obrigado!");
