@@ -171,6 +171,243 @@ function solurAdicaoRapida(id) {
     abrirDrawer();
 }
 
+/* ---------- conta do cliente ---------- */
+
+function solurHashSenha(senha) {
+    /* hash didático (djb2 com sal) — não substitui criptografia de produção */
+    var texto = "solur::" + senha;
+    var hash = 5381;
+    for (var i = 0; i < texto.length; i++) {
+        hash = ((hash << 5) + hash + texto.charCodeAt(i)) >>> 0;
+    }
+    return hash.toString(16);
+}
+
+function solurUsuariosObter() {
+    try {
+        var lista = JSON.parse(localStorage.getItem("solur_usuarios"));
+        return Array.isArray(lista) ? lista : [];
+    } catch (erro) {
+        return [];
+    }
+}
+
+function solurContaAtual() {
+    try {
+        var sessao = JSON.parse(localStorage.getItem("solur_sessao"));
+        return sessao && sessao.email ? sessao : null;
+    } catch (erro) {
+        return null;
+    }
+}
+
+function solurIniciais(nome) {
+    var partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) return "?";
+    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+}
+
+function solurContaAtualizarCabecalho() {
+    var botao = document.getElementById("botaoConta");
+    var sessao = solurContaAtual();
+
+    document.querySelectorAll("[data-nome-usuario]").forEach(function (el) {
+        el.textContent = sessao ? sessao.nome.split(" ")[0] : "";
+    });
+
+    if (!botao) return;
+
+    var iniciais = botao.querySelector(".iniciais-conta");
+    botao.dataset.logado = sessao ? "true" : "false";
+    botao.setAttribute("aria-label", sessao ? "Minha conta de " + sessao.nome : "Entrar na sua conta");
+
+    if (iniciais) {
+        iniciais.textContent = sessao ? solurIniciais(sessao.nome) : "";
+        iniciais.hidden = !sessao;
+    }
+}
+
+function solurContaCriarModal() {
+    if (document.getElementById("contaOverlay")) return;
+
+    var overlay = document.createElement("div");
+    overlay.className = "conta-overlay";
+    overlay.id = "contaOverlay";
+    overlay.hidden = true;
+    overlay.innerHTML =
+        '<div class="conta-modal" role="dialog" aria-modal="true" aria-labelledby="tituloConta">' +
+        '<button type="button" class="fechar-conta" id="fecharConta" aria-label="Fechar">&times;</button>' +
+        '<span class="conta-simbolo" aria-hidden="true">&#10022;</span>' +
+        '<h2 id="tituloConta">ENTRE NO CLÃ</h2>' +
+        '<p class="conta-sub" id="subtituloConta">Acompanhe pedidos, favoritos e finalize suas compras mais rápido.</p>' +
+        '<div class="conta-abas" id="abasConta" role="tablist">' +
+        '<button type="button" class="conta-aba ativa" role="tab" aria-selected="true" data-aba="entrar">Entrar</button>' +
+        '<button type="button" class="conta-aba" role="tab" aria-selected="false" data-aba="criar">Criar conta</button>' +
+        '</div>' +
+        '<form class="form-conta" id="formLogin" novalidate>' +
+        '<label for="loginEmail">E-mail</label>' +
+        '<input type="email" id="loginEmail" placeholder="voce@email.com" autocomplete="email">' +
+        '<label for="loginSenha">Senha</label>' +
+        '<input type="password" id="loginSenha" placeholder="Sua senha" autocomplete="current-password">' +
+        '<p class="conta-erro" id="erroLogin" role="alert"></p>' +
+        '<button type="submit" class="botao">ENTRAR</button>' +
+        '</form>' +
+        '<form class="form-conta" id="formCadastro" novalidate hidden>' +
+        '<label for="cadastroNome">Nome completo</label>' +
+        '<input type="text" id="cadastroNome" placeholder="Como devemos te chamar" autocomplete="name">' +
+        '<label for="cadastroEmail">E-mail</label>' +
+        '<input type="email" id="cadastroEmail" placeholder="voce@email.com" autocomplete="email">' +
+        '<label for="cadastroSenha">Senha</label>' +
+        '<input type="password" id="cadastroSenha" placeholder="Mínimo de 6 caracteres" autocomplete="new-password">' +
+        '<label for="cadastroConfirma">Confirmar senha</label>' +
+        '<input type="password" id="cadastroConfirma" placeholder="Repita a senha" autocomplete="new-password">' +
+        '<p class="conta-erro" id="erroCadastro" role="alert"></p>' +
+        '<button type="submit" class="botao">CRIAR CONTA</button>' +
+        '</form>' +
+        '<div class="painel-conta" id="painelConta" hidden>' +
+        '<p class="conta-ola">Olá, <strong id="nomePainelConta"></strong></p>' +
+        '<p class="conta-email" id="emailPainelConta"></p>' +
+        '<p class="conta-pedidos" id="pedidosPainelConta"></p>' +
+        '<a class="botao" href="../Página de Carrinho/carrinho.html">VER MINHA SACOLA</a>' +
+        '<button type="button" class="botao-fantasma" id="sairConta">SAIR DA CONTA</button>' +
+        '</div>' +
+        '<p class="conta-nota">Projeto escolar: a conta fica salva apenas neste navegador.</p>' +
+        '</div>';
+
+    document.body.appendChild(overlay);
+}
+
+function solurContaMostrarAba(aba) {
+    var logado = !!solurContaAtual();
+    var abas = document.getElementById("abasConta");
+    var painel = document.getElementById("painelConta");
+    var login = document.getElementById("formLogin");
+    var cadastro = document.getElementById("formCadastro");
+    var subtitulo = document.getElementById("subtituloConta");
+    var titulo = document.getElementById("tituloConta");
+
+    if (!abas || !login || !cadastro) return;
+
+    abas.hidden = logado;
+    painel.hidden = !logado;
+    login.hidden = logado || aba !== "entrar";
+    cadastro.hidden = logado || aba !== "criar";
+    titulo.textContent = logado ? "MINHA CONTA" : "ENTRE NO CLÃ";
+    subtitulo.textContent = logado
+        ? "Seus dados ficam salvos neste navegador."
+        : "Acompanhe pedidos, favoritos e finalize suas compras mais rápido.";
+
+    document.querySelectorAll(".conta-aba").forEach(function (botao) {
+        var ativa = botao.dataset.aba === aba;
+        botao.classList.toggle("ativa", ativa);
+        botao.setAttribute("aria-selected", ativa ? "true" : "false");
+    });
+
+    var erroLogin = document.getElementById("erroLogin");
+    var erroCadastro = document.getElementById("erroCadastro");
+    if (erroLogin) erroLogin.textContent = "";
+    if (erroCadastro) erroCadastro.textContent = "";
+
+    var campo = logado ? null : document.getElementById(aba === "criar" ? "cadastroNome" : "loginEmail");
+    if (campo) setTimeout(function () { campo.focus(); }, 60);
+}
+
+function solurContaPainelAtualizar() {
+    var sessao = solurContaAtual();
+    if (!sessao) return;
+
+    var nome = document.getElementById("nomePainelConta");
+    var email = document.getElementById("emailPainelConta");
+    var pedidos = document.getElementById("pedidosPainelConta");
+
+    if (nome) nome.textContent = sessao.nome;
+    if (email) email.textContent = sessao.email;
+
+    if (pedidos) {
+        var lista = [];
+        try { lista = JSON.parse(localStorage.getItem("solur_pedidos") || "[]"); } catch (erro) { lista = []; }
+        var meus = lista.filter(function (pedido) {
+            return String(pedido.email || "").toLowerCase() === sessao.email.toLowerCase();
+        });
+        pedidos.textContent = meus.length === 0
+            ? "Nenhum pedido registrado neste navegador ainda."
+            : meus.length + (meus.length === 1 ? " pedido registrado neste navegador." : " pedidos registrados neste navegador.");
+    }
+}
+
+function solurContaAbrir() {
+    solurContaCriarModal();
+    var overlay = document.getElementById("contaOverlay");
+    overlay.hidden = false;
+    document.body.classList.add("conta-aberta");
+    solurContaMostrarAba("entrar");
+    solurContaPainelAtualizar();
+    document.getElementById("fecharConta").focus();
+}
+
+function solurContaFechar() {
+    var overlay = document.getElementById("contaOverlay");
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.body.classList.remove("conta-aberta");
+    var botao = document.getElementById("botaoConta");
+    if (botao) botao.focus();
+}
+
+function solurContaIniciarSessao(usuario) {
+    localStorage.setItem("solur_sessao", JSON.stringify({
+        nome: usuario.nome,
+        email: usuario.email,
+        desde: new Date().toISOString()
+    }));
+    solurContaAtualizarCabecalho();
+}
+
+function solurEntrar(email, senha) {
+    email = String(email || "").trim().toLowerCase();
+    var usuario = solurUsuariosObter().find(function (item) {
+        return item.email === email;
+    });
+
+    if (!usuario) return { ok: false, mensagem: "E-mail não cadastrado. Crie uma conta." };
+    if (usuario.senha !== solurHashSenha(senha)) return { ok: false, mensagem: "Senha incorreta. Tente novamente." };
+
+    solurContaIniciarSessao(usuario);
+    return { ok: true, usuario: usuario };
+}
+
+function solurCriarConta(nome, email, senha, confirmacao) {
+    nome = String(nome || "").trim();
+    email = String(email || "").trim().toLowerCase();
+
+    if (nome.length < 2) return { ok: false, mensagem: "Informe seu nome completo." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, mensagem: "E-mail inválido." };
+    if (String(senha).length < 6) return { ok: false, mensagem: "A senha precisa ter pelo menos 6 caracteres." };
+    if (senha !== confirmacao) return { ok: false, mensagem: "As senhas não conferem." };
+    if (solurUsuariosObter().some(function (item) { return item.email === email; })) {
+        return { ok: false, mensagem: "Já existe uma conta com este e-mail." };
+    }
+
+    var usuario = {
+        nome: nome,
+        email: email,
+        senha: solurHashSenha(senha),
+        criadoEm: new Date().toISOString()
+    };
+
+    var usuarios = solurUsuariosObter();
+    usuarios.push(usuario);
+    localStorage.setItem("solur_usuarios", JSON.stringify(usuarios));
+    solurContaIniciarSessao(usuario);
+    return { ok: true, usuario: usuario };
+}
+
+function solurSair() {
+    localStorage.removeItem("solur_sessao");
+    solurContaAtualizarCabecalho();
+}
+
 /* ---------- inicialização global ---------- */
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -182,6 +419,103 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoMenu.addEventListener("click", function () {
             menu.classList.toggle("aberto");
         });
+    }
+
+    /* conta do cliente */
+    solurContaCriarModal();
+    solurContaAtualizarCabecalho();
+
+    const botaoConta = document.getElementById("botaoConta");
+    if (botaoConta) {
+        botaoConta.addEventListener("click", solurContaAbrir);
+    }
+
+    const overlayConta = document.getElementById("contaOverlay");
+
+    if (overlayConta) {
+        overlayConta.addEventListener("click", function (evento) {
+            if (evento.target === overlayConta || evento.target.closest("#fecharConta")) {
+                solurContaFechar();
+            }
+        });
+    }
+
+    document.querySelectorAll(".conta-aba").forEach(function (aba) {
+        aba.addEventListener("click", function () {
+            solurContaMostrarAba(aba.dataset.aba);
+        });
+    });
+
+    const formLogin = document.getElementById("formLogin");
+    if (formLogin) {
+        formLogin.addEventListener("submit", function (evento) {
+            evento.preventDefault();
+            const resultado = solurEntrar(
+                document.getElementById("loginEmail").value,
+                document.getElementById("loginSenha").value
+            );
+            const erro = document.getElementById("erroLogin");
+
+            if (!resultado.ok) {
+                erro.textContent = resultado.mensagem;
+                return;
+            }
+
+            erro.textContent = "";
+            formLogin.reset();
+            solurContaMostrarAba("entrar");
+            solurContaPainelAtualizar();
+            solurToast("Bem-vindo de volta, " + resultado.usuario.nome.split(" ")[0] + ".");
+        });
+    }
+
+    const formCadastro = document.getElementById("formCadastro");
+    if (formCadastro) {
+        formCadastro.addEventListener("submit", function (evento) {
+            evento.preventDefault();
+            const resultado = solurCriarConta(
+                document.getElementById("cadastroNome").value,
+                document.getElementById("cadastroEmail").value,
+                document.getElementById("cadastroSenha").value,
+                document.getElementById("cadastroConfirma").value
+            );
+            const erro = document.getElementById("erroCadastro");
+
+            if (!resultado.ok) {
+                erro.textContent = resultado.mensagem;
+                return;
+            }
+
+            erro.textContent = "";
+            formCadastro.reset();
+            solurContaFechar();
+            solurToast("Conta criada. Bem-vindo ao clã, " + resultado.usuario.nome.split(" ")[0] + ".");
+        });
+    }
+
+    const botaoSair = document.getElementById("sairConta");
+    if (botaoSair) {
+        botaoSair.addEventListener("click", function () {
+            solurSair();
+            solurContaFechar();
+            solurToast("Você saiu da sua conta.");
+        });
+    }
+
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape" && overlayConta && !overlayConta.hidden) {
+            solurContaFechar();
+        }
+    });
+
+    /* pré-preenche o checkout com os dados da conta */
+    const sessao = solurContaAtual();
+    if (sessao) {
+        const nomeCheckout = document.getElementById("nomeCompleto");
+        const emailCheckout = document.getElementById("emailCheckout");
+
+        if (nomeCheckout && !nomeCheckout.value) nomeCheckout.value = sessao.nome;
+        if (emailCheckout && !emailCheckout.value) emailCheckout.value = sessao.email;
     }
 
     /* busca do header */
