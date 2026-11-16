@@ -168,6 +168,125 @@
 }
 
 
+/* LOCALIZAÇÃO */
+
+.secao-localizacao {
+    border-top: 1px solid var(--borda);
+}
+
+.localizacao-grade {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 22px;
+    align-items: stretch;
+}
+
+.mapa-solur {
+    position: relative;
+    min-height: 360px;
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--superficie);
+}
+
+.mapa-solur iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    border: 0;
+    display: block;
+    filter: grayscale(1) contrast(1.05) brightness(0.92);
+}
+
+.mapa-selo {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    background: rgba(10, 10, 10, 0.88);
+    border: 1px solid var(--borda-forte);
+    border-radius: 30px;
+    color: var(--prata);
+    font-family: var(--fonte-titulo);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 7px 14px;
+    pointer-events: none;
+}
+
+.cartao-endereco {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 30px 28px;
+    display: flex;
+    flex-direction: column;
+}
+
+.endereco-selo {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--sangue);
+    margin-bottom: 10px;
+}
+
+.cartao-endereco h3 {
+    font-family: var(--fonte-titulo);
+    font-size: 19px;
+    letter-spacing: 1px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.endereco-bairro {
+    color: var(--suave);
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+.endereco-horarios {
+    list-style: none;
+    border-top: 1px solid var(--borda);
+    border-bottom: 1px solid var(--borda);
+    padding: 14px 0;
+    margin-bottom: 16px;
+}
+
+.endereco-horarios li {
+    font-size: 12.5px;
+    color: var(--prata);
+    padding: 4px 0;
+}
+
+.endereco-horarios strong {
+    color: var(--branco);
+    display: inline-block;
+    min-width: 82px;
+    font-weight: 600;
+}
+
+.endereco-brincadeira {
+    color: var(--suave);
+    font-size: 12.5px;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.cartao-endereco .botao {
+    text-align: center;
+    margin-top: auto;
+}
+
+.endereco-nota {
+    color: #6f6f6f;
+    font-size: 10.5px;
+    text-align: center;
+    margin-top: 10px;
+}
+
+
 /* RESPONSIVO */
 
 @media (max-width: 820px) {
@@ -181,5 +300,14 @@
 
     .formulario-contato {
         padding: 24px 18px;
+    }
+
+    .localizacao-grade {
+        grid-template-columns: 1fr;
+    }
+
+    .mapa-solur,
+    .mapa-solur iframe {
+        min-height: 300px;
     }
 }
